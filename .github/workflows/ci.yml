@@ -10,6 +10,11 @@ permissions:
   actions: read
   contents: read
 
+env:
+  NX_CI_EXECUTION_ENV: 'github-actions'
+  NX_CLOUD_AUTH_TOKEN: ${{ secrets.NX_CLOUD_AUTH_TOKEN }}
+  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
 jobs:
   main:
     runs-on: ubuntu-latest
@@ -23,7 +28,7 @@ jobs:
       # Run this command as early as possible, before dependencies are installed
       # Learn more at https://nx.dev/ci/reference/nx-cloud-cli#npx-nxcloud-startcirun
       # Uncomment this line to enable task distribution
-      - run: npx nx-cloud start-ci-run --distribute-on="3 linux-medium-js" --stop-agents-after="build"
+      - run: npx nx-cloud start-ci-run --distribute-on="2 linux-medium-js" --stop-agents-after="lint,test,build" --with-env-vars="ANTHROPIC_API_KEY"
 
       # Cache node_modules
       - uses: actions/setup-node@v4
