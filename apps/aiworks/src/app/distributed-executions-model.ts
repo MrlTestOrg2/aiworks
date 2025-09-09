@@ -2,7 +2,7 @@ import { MongoDistributedTask } from '@nx-cloud/model-db';
 
 export type DistributedExecutionStatus =
   | 'NOT_STARTED'
-  | 'COMPLETED'
+  | 'COMPLETED
   | 'COMPLETED
   | 'FAILED';
 
