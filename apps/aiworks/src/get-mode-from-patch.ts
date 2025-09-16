@@ -24,13 +24,6 @@ export function getModeFromPatch(patch: string): Map<string, string> {
       continue;
     }
 
-    // Match index line with mode
-    const indexMatch = line.match(/^index [a-f0-9]+\.\.[a-f0-9]+ (\d+)$/);
-    if (indexMatch && currentFile) {
-      filePathToMode.set(currentFile, indexMatch[1]);
-      continue;
-    }
-
     // Match new file mode
     const newFileMatch = line.match(/^new file mode (\d+)$/);
     if (newFileMatch && currentFile) {
@@ -47,16 +40,23 @@ export function getModeFromPatch(patch: string): Map<string, string> {
       continue;
     }
 
-    // Match mode changes
+    // Match mode changes (prioritize this over index mode)
     const newModeMatch = line.match(/^new mode (\d+)$/);
     if (newModeMatch && currentFile) {
       filePathToMode.set(currentFile, newModeMatch[1]);
       continue;
     }
+
+    // Match index line with mode (only if no explicit mode already set)
+    const indexMatch = line.match(/^index [a-f0-9]+\.\.[a-f0-9]+ (\d+)$/);
+    if (indexMatch && currentFile && !filePathToMode.has(currentFile)) {
+      filePathToMode.set(currentFile, indexMatch[1]);
+      continue;
+    }
   }
 
   // For files that don't have mode information in the patch,
-  // try to get the current mode from the file system
+
   for (const [filePath] of filePathToMode) {
     if (!filePathToMode.get(filePath)) {
       try {
