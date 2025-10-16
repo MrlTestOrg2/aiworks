@@ -11,7 +11,7 @@ export function getModeFromPatch(patch: string): Map<string, string> {
 
   // Split patch into lines for processing
   const lines = patch.split('\n');
-  let currentFile: string | null = null;
+  let currentFile: string = '';
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
