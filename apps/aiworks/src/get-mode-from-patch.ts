@@ -11,7 +11,7 @@ export function getModeFromPatch(patch: string): Map<string, string> {
 
   // Split patch into lines for processing
   const lines = patch.split('\n');
-  let currentFile: string = '';
+  let currentFile = '';
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -68,7 +68,7 @@ export function getModeFromPatch(patch: string): Map<string, string> {
             : '100644'
           : '040000'; // directory
         filePathToMode.set(filePath, gitMode);
-      } catch (err) {
+      } catch {
         // File doesn't exist or can't be accessed, skip
       }
     }
@@ -90,7 +90,7 @@ export function getModeFromPatch(patch: string): Map<string, string> {
       if (gitMode) {
         filePathToMode.set(filePath, gitMode);
       }
-    } catch (err) {
+    } catch {
       // Remove files that don't exist
       filePathToMode.delete(filePath);
     }
