@@ -15,14 +15,10 @@ variables:
   ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
     NX_BRANCH: $(System.PullRequest.PullRequestNumber)
     TARGET_BRANCH: $[replace(variables['System.PullRequest.TargetBranch'], 'refs/heads/', 'origin/')]
-    BASE_SHA: $(git merge-base $(TARGET_BRANCH) HEAD)
 
   # --------------- MAIN RUN ---------------
   ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
     NX_BRANCH: $(Build.SourceBranchName)
-    BASE_SHA: $(git rev-parse HEAD~1)
-
-  HEAD_SHA: $(git rev-parse HEAD)
 
 jobs:
   - job: main
@@ -39,7 +35,16 @@ jobs:
       - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject)
         displayName: 'Set AzDo defaults'
 
-      # Get last successful commit on main (non-PR only)
+      # Calculate BASE_SHA for PR
+      - bash: |
+          TARGET_BRANCH=$(echo "$(System.PullRequest.TargetBranch)" | sed 's|refs/heads/||')
+          BASE_SHA=$(git merge-base origin/$TARGET_BRANCH HEAD)
+          echo "##vso[task.setvariable variable=BASE_SHA]$BASE_SHA"
+          echo "Base SHA for PR: $BASE_SHA"
+        displayName: 'Calculate BASE_SHA (PR)'
+        condition: eq(variables['Build.Reason'], 'PullRequest')
+
+      # Calculate BASE_SHA for main branch (try last successful, fallback to HEAD~1)
       - bash: |
           LAST_SHA=$(az pipelines build list \
             --branch $(Build.SourceBranchName) \
@@ -49,17 +54,35 @@ jobs:
             --query "[0].triggerInfo.\"ci.sourceSha\"" \
             --output tsv)
 
-          if [ -z "$LAST_SHA" ]
+          if [ -z "$LAST_SHA" ] || [ "$LAST_SHA" == "null" ]
           then
-            echo "Last successful commit not found. Using fallback: $BASE_SHA"
+            BASE_SHA=$(git rev-parse HEAD~1)
+            echo "Last successful commit not found. Using fallback HEAD~1: $BASE_SHA"
           else
-            echo "Last successful commit SHA: $LAST_SHA"
-            echo "##vso[task.setvariable variable=BASE_SHA]$LAST_SHA"
+            BASE_SHA=$LAST_SHA
+            echo "Last successful commit SHA: $BASE_SHA"
           fi
-        displayName: 'Get last successful commit (non-PR)'
+          
+          echo "##vso[task.setvariable variable=BASE_SHA]$BASE_SHA"
+        displayName: 'Calculate BASE_SHA (main)'
         condition: ne(variables['Build.Reason'], 'PullRequest')
         env:
           AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+
+      # Calculate HEAD_SHA
+      - bash: |
+          HEAD_SHA=$(git rev-parse HEAD)
+          echo "##vso[task.setvariable variable=HEAD_SHA]$HEAD_SHA"
+          echo "Head SHA: $HEAD_SHA"
+        displayName: 'Calculate HEAD_SHA'
+
+      # Debug: Print all variables
+      - bash: |
+          echo "Build Reason: $(Build.Reason)"
+          echo "NX_BRANCH: $(NX_BRANCH)"
+          echo "BASE_SHA: $(BASE_SHA)"
+          echo "HEAD_SHA: $(HEAD_SHA)"
+        displayName: 'Debug: Print variables'
 
       # ---------------------
       # Install dependencies
@@ -79,6 +102,7 @@ jobs:
         displayName: 'Nx affected (lint, test, build)'
         env:
           NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
+          NX_BRANCH: $(NX_BRANCH)
 
       # ---------------------
       # Nx Self-Healing CI
@@ -86,3 +110,5 @@ jobs:
       - script: npx nx-cloud fix-ci
         displayName: 'Nx Cloud Self-Healing CI'
         condition: always()
+        env:
+          NX_BRANCH: $(NX_BRANCH)
