@@ -19,7 +19,7 @@ variables:
 jobs:
   - job: main
     pool:
-      vmImage: 'ubuntu-latest'
+      name: 'selfhosted'
     steps:
       - checkout: self
         fetchDepth: 0
