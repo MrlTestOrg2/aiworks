@@ -1,0 +1,88 @@
+name: CI
+
+# Run CI on pushes to main
+trigger:
+  - main
+
+# Run CI on pull requests targeting main
+pr:
+  - main
+
+variables:
+  CI: 'true'
+
+  # ---------------- PR RUN ----------------
+  ${{ if eq(variables['Build.Reason'], 'PullRequest') }}:
+    NX_BRANCH: $(System.PullRequest.PullRequestNumber)
+    TARGET_BRANCH: $[replace(variables['System.PullRequest.TargetBranch'], 'refs/heads/', 'origin/')]
+    BASE_SHA: $(git merge-base $(TARGET_BRANCH) HEAD)
+
+  # --------------- MAIN RUN ---------------
+  ${{ if ne(variables['Build.Reason'], 'PullRequest') }}:
+    NX_BRANCH: $(Build.SourceBranchName)
+    BASE_SHA: $(git rev-parse HEAD~1)
+
+  HEAD_SHA: $(git rev-parse HEAD)
+
+jobs:
+  - job: main
+    pool:
+      name: 'selfhosted'
+
+    steps:
+      # Full checkout so BASE_SHA works for Nx
+      - checkout: self
+        fetchDepth: 0
+        fetchFilter: tree:0
+
+      # Configure Azure DevOps CLI defaults (org/project)
+      - bash: az devops configure --defaults organization=$(System.TeamFoundationCollectionUri) project=$(System.TeamProject)
+        displayName: 'Set AzDo defaults'
+
+      # Get last successful commit on main (non-PR only)
+      - bash: |
+          LAST_SHA=$(az pipelines build list \
+            --branch $(Build.SourceBranchName) \
+            --definition-ids $(System.DefinitionId) \
+            --result succeeded \
+            --top 1 \
+            --query "[0].triggerInfo.\"ci.sourceSha\"" \
+            --output tsv)
+
+          if [ -z "$LAST_SHA" ]
+          then
+            echo "Last successful commit not found. Using fallback: $BASE_SHA"
+          else
+            echo "Last successful commit SHA: $LAST_SHA"
+            echo "##vso[task.setvariable variable=BASE_SHA]$LAST_SHA"
+          fi
+        displayName: 'Get last successful commit (non-PR)'
+        condition: ne(variables['Build.Reason'], 'PullRequest')
+        env:
+          AZURE_DEVOPS_EXT_PAT: $(System.AccessToken)
+
+      # ---------------------
+      # Install dependencies
+      # ---------------------
+      - script: npm ci --legacy-peer-deps
+        displayName: 'Install dependencies'
+
+      # Needed only for PRs (allows merge-base to work cleanly)
+      - script: git branch --track main origin/main
+        condition: eq(variables['Build.Reason'], 'PullRequest')
+        displayName: 'Track main (PR only)'
+
+      # ---------------------
+      # Nx affected (NO DTE)
+      # ---------------------
+      - script: npx nx affected --base=$(BASE_SHA) --head=$(HEAD_SHA) -t lint test build --no-dte
+        displayName: 'Nx affected (lint, test, build)'
+        env:
+          NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
+
+      # ---------------------
+      # Nx Self-Healing CI
+      # ---------------------
+      - script: npx nx-cloud fix-ci
+        displayName: 'Nx Cloud Self-Healing CI'
+        condition: always()
