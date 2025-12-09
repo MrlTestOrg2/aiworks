@@ -97,12 +97,3 @@ jobs:
         env:
           NX_CLOUD_DISTRIBUTED_EXECUTION: 'false'
           NX_BRANCH: $(NX_BRANCH)
-
-      # ---------------------
-      # Nx Self-Healing CI
-      # ---------------------
-      - script: npx nx-cloud fix-ci
-        displayName: 'Nx Cloud Self-Healing CI'
-        condition: always()
-        env:
-          NX_BRANCH: $(NX_BRANCH)
