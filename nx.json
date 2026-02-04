@@ -10,7 +10,10 @@
       "!{projectRoot}/tsconfig.spec.json",
       "!{projectRoot}/src/test-setup.[jt]s"
     ],
-    "sharedGlobals": ["{workspaceRoot}/.github/workflows/ci.yml"]
+    "sharedGlobals": [
+      "{workspaceRoot}/.github/workflows/ci.yml",
+      "{workspaceRoot}/azure-pipelines.yml"
+    ]
   },
   "plugins": [
     {
@@ -81,5 +84,6 @@
       }
     }
   },
-  "nxCloudId": "68c0479066287c4fce27ef40"
+  "nxCloudUrl": "https://snapshot.nx.app",
+  "nxCloudId": "692641ba3e5ff9007fb58728"
 }
