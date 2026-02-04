@@ -12,8 +12,6 @@ permissions:
 
 env:
   NX_CI_EXECUTION_ENV: 'github-actions'
-  NX_CLOUD_AUTH_TOKEN: ${{ secrets.NX_CLOUD_AUTH_TOKEN }}
-  ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
 
 jobs:
   main:
