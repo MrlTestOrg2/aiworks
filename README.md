@@ -13,7 +13,7 @@
 
 ## Run tasks
 
-To run the dev server for your app, use:
+To start the local development server, run:
 
 ```sh
 npx nx serve aiworks
