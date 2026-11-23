@@ -9,7 +9,12 @@ triggers:
 
 workflows:
   main:
-    runs-on: linux-medium-js
+    runs-on: linux-large-js
+    # Tasks run on this one machine, which fits most workspaces.
+    # For a large workspace, uncomment workers to add 3 more machines like this one.
+    # They start with every run: large runs can finish sooner, and runs usually use more credits.
+    # https://nx.dev/docs/reference/nx-cloud/ci-config#jobsjobworkers
+    # workers: 3
     steps:
       - name: Run affected tasks
         script: |
