@@ -5,6 +5,7 @@ export type DistributedExecutionStatus =
   | 'NOT_STARTED'
   | 'IN_PROGRESS'
   | 'COMPLETED'
+  | 'CANCELED'
   | 'FAILED';
 
 export type DteAgentStatus = 'IDLE' | 'ACTIVE' | 'COMPLETED';
