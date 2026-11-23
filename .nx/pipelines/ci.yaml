@@ -1,0 +1,22 @@
+# yaml-language-server: $schema=https://snapshot.nx.app/nx-cloud/static/schemas/workflow.schema.json
+name: queue-test
+triggers:
+  pull-requests:
+    event: PR
+    branches: ['main']
+  pushes:
+    event: PUSH
+    branches: ['main']
+  merge-queue:
+    event: MERGE_GROUP
+    branches: ['main']
+
+workflows:
+  main:
+    runs-on: linux-large-js
+    steps:
+      - name: Run affected tasks
+        script: |
+          npx nx affected -t lint test build
+      - name: Hold the run open
+        script: sleep 240
